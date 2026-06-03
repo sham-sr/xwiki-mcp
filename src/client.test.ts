@@ -149,47 +149,51 @@ describe('getPage', () => {
 // search — scope prefix
 // ---------------------------------------------------------------------------
 
-describe('search scope prefix', () => {
+describe('search engines & scope', () => {
   const emptyResponse = { searchResults: [], totalResults: 0 };
 
-  it('passes raw query for content scope', async () => {
+  it('solr engine hits /rest/wikis/query?type=solr', async () => {
     const fetch = mockFetch(emptyResponse);
     vi.stubGlobal('fetch', fetch);
 
-    await new XWikiClient().search('foo bar', 'content', undefined, 0, 10);
+    await new XWikiClient().search('foo bar', { engine: 'solr', start: 0, limit: 10 });
 
-    const url: string = fetch.mock.calls[0][0];
-    expect(new URL(url).searchParams.get('q')).toBe('foo bar');
+    const url = new URL(fetch.mock.calls[0][0]);
+    expect(url.pathname).toBe('/rest/wikis/query');
+    expect(url.searchParams.get('type')).toBe('solr');
+    expect(url.searchParams.get('q')).toBe('foo bar');
   });
 
-  it('adds title: prefix for title scope', async () => {
+  it('solr title scope wraps query as title:(...)', async () => {
     const fetch = mockFetch(emptyResponse);
     vi.stubGlobal('fetch', fetch);
 
-    await new XWikiClient().search('foo bar', 'title', undefined, 0, 10);
+    await new XWikiClient().search('foo bar', { engine: 'solr', scope: 'title', start: 0, limit: 10 });
 
-    const url: string = fetch.mock.calls[0][0];
-    expect(new URL(url).searchParams.get('q')).toBe('title:foo bar');
+    const url = new URL(fetch.mock.calls[0][0]);
+    expect(url.searchParams.get('q')).toBe('title:(foo bar)');
   });
 
-  it('adds name: prefix for name scope', async () => {
+  it('solr appends space:"..." filter when space is given', async () => {
     const fetch = mockFetch(emptyResponse);
     vi.stubGlobal('fetch', fetch);
 
-    await new XWikiClient().search('foo', 'name', undefined, 0, 10);
+    await new XWikiClient().search('foo', { engine: 'solr', space: 'MySpace', start: 0, limit: 10 });
 
-    const url: string = fetch.mock.calls[0][0];
-    expect(new URL(url).searchParams.get('q')).toBe('name:foo');
+    const url = new URL(fetch.mock.calls[0][0]);
+    expect(url.searchParams.get('q')).toContain('space:"MySpace"');
   });
 
-  it('adds space param when space is specified', async () => {
+  it('legacy engine hits /search with scope param', async () => {
     const fetch = mockFetch(emptyResponse);
     vi.stubGlobal('fetch', fetch);
 
-    await new XWikiClient().search('foo', 'content', 'MySpace', 0, 10);
+    await new XWikiClient().search('foo', { engine: 'legacy', scope: 'title', start: 0, limit: 10 });
 
-    const url: string = fetch.mock.calls[0][0];
-    expect(new URL(url).searchParams.get('space')).toBe('MySpace');
+    const url = new URL(fetch.mock.calls[0][0]);
+    expect(url.pathname).toBe('/rest/wikis/xwiki/search');
+    expect(url.searchParams.get('scope')).toBe('title');
+    expect(url.searchParams.get('q')).toBe('foo');
   });
 });
 

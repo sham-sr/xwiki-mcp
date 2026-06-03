@@ -7,10 +7,19 @@ export function register(server: McpServer, client: XWikiClient): void {
   server.registerTool(
     'get_page_children',
     {
-      description: 'Get child pages of a wiki page. Useful for navigating page hierarchies.',
+      description:
+        'List direct child pages of a given parent page (one level deep — does not recurse).\n' +
+        'Use this when:\n' +
+        '  • you landed on a "section index" page (often "WebHome") and want to see what is below it\n' +
+        '  • the user asked "what subpages does X have?"\n' +
+        '  • you are mapping a topic and need to enumerate sub-articles.\n' +
+        'Returns: array of {id, title, parent, url}. ' +
+        'NEXT STEP: call `get_page` on a specific child, or recurse with `get_page_children` to go deeper.',
       inputSchema: {
-        space: z.string().describe('Space name. Use dot notation for nested spaces: "Space1.SubSpace"'),
-        page: z.string().describe('Parent page name'),
+        space: z
+          .string()
+          .describe('Space path with dots for nesting. Example: "Documentation.API".'),
+        page: z.string().describe('Parent page name (leaf, usually "WebHome").'),
       },
     },
     async ({ space, page }) => {

@@ -7,10 +7,25 @@ export function register(server: McpServer, client: XWikiClient): void {
   server.registerTool(
     'get_page',
     {
-      description: 'Get the content and metadata of a specific wiki page. Content is returned as raw wiki markup (xwiki/2.1 syntax).',
+      description:
+        'Read the full content of one wiki page (the actual text, formulas, links, images).\n' +
+        'Use this when:\n' +
+        '  • `search` returned a relevant result and you want to read it — pass `space` and `page` straight from the search result\n' +
+        '  • the user gave you a wiki URL or said "open page X"\n' +
+        '  • you need to quote or summarise the page.\n' +
+        'IMPORTANT — how to address a page:\n' +
+        '  • `space` is the FULL path of containing folders joined with dots. Example: "Documentation.API.v2"\n' +
+        '  • `page` is just the leaf page name. For section home pages this is usually "WebHome".\n' +
+        '  • A search result with id "xwiki:Foo.Bar.WebHome" → space="Foo.Bar", page="WebHome".\n' +
+        'Returns: {title, content, syntax, author, modified_date, version, url}. ' +
+        '`content` is XWiki markup (typically xwiki/2.1) — not Markdown; "= H1 =" is a heading, "[[label>>target]]" is a link.',
       inputSchema: {
-        space: z.string().describe('Space name. Use dot notation for nested spaces: "Space1.SubSpace"'),
-        page: z.string().describe('Page name (e.g. "WebHome", "MyPage")'),
+        space: z
+          .string()
+          .describe('Space path with dots for nesting. Example: "Sandbox" or "Documentation.API.v2".'),
+        page: z
+          .string()
+          .describe('Page name (leaf only, not the full path). Usually "WebHome" for the section root.'),
       },
     },
     async ({ space, page }) => {

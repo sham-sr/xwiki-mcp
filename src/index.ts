@@ -9,26 +9,29 @@ import { register as registerGetPage } from './tools/get-page.js';
 import { register as registerSearch } from './tools/search.js';
 import { register as registerGetAttachments } from './tools/get-attachments.js';
 import { register as registerGetPageChildren } from './tools/get-page-children.js';
-
-// Phase 2 stubs (write operations) — not implemented
-// TODO: create_page   — PUT /wikis/{wiki}/spaces/{space}/pages/{page}
-// TODO: update_page   — PUT /wikis/{wiki}/spaces/{space}/pages/{page} (with content body)
-// TODO: add_comment   — POST /wikis/{wiki}/spaces/{space}/pages/{page}/comments
+import { register as registerCreatePage } from './tools/create-page.js';
+import { register as registerDeletePage } from './tools/delete-page.js';
+import { register as registerAddComment } from './tools/add-comment.js';
 
 async function main() {
   const server = new McpServer({
     name: 'xwiki-mcp',
-    version: '0.1.0',
+    version: '0.2.0',
   });
 
   const client = new XWikiClient();
 
+  // Read
   registerListSpaces(server, client);
   registerListPages(server, client);
   registerGetPage(server, client);
   registerSearch(server, client);
   registerGetAttachments(server, client);
   registerGetPageChildren(server, client);
+  // Write
+  registerCreatePage(server, client);
+  registerDeletePage(server, client);
+  registerAddComment(server, client);
 
   const transport = new StdioServerTransport();
   await server.connect(transport);
