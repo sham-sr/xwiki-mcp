@@ -12,28 +12,32 @@ export function register(server: McpServer, client: XWikiClient): void {
         'Use this when:\n' +
         '  • the user said "show me what is in <space>"\n' +
         '  • `search` returned a space-level hit and you want to dig deeper\n' +
-        '  • you need to find a specific page by eyeballing titles rather than searching.\n' +
-        'For nested sections: use DOT notation. Example: space="Documentation.API" reads /Documentation/API/.\n' +
-        'Returns: {pages: [{id, title, parent, url}], _pagination: {...}}. ' +
-        'NEXT STEP: pick a page and call `get_page` with the same space + the page name.',
+        '  • you need to find a page by eyeballing titles\n' +
+        'Nested sections: dot notation, e.g. space="Docs.01._specification".\n' +
+        'Set `wiki` when not using the default virtual wiki.\n' +
+        'Returns: {pages: [{id, title, parent, url}], _pagination}. NEXT: get_page({ id }).',
       inputSchema: {
+        wiki: z
+          .string()
+          .optional()
+          .describe('Virtual wiki name (default: XWIKI_WIKI_NAME).'),
         space: z
           .string()
-          .describe('Space path. Single name like "Sandbox", or nested with dots: "Documentation.API.v2".'),
-        start: z.number().int().min(0).optional().default(0).describe('Pagination offset (0 = from the start)'),
+          .describe('Space path. Example: "system_overview" or "Docs.01._specification".'),
+        start: z.number().int().min(0).optional().default(0).describe('Pagination offset.'),
         limit: z
           .number()
           .int()
           .min(1)
           .max(200)
           .optional()
-          .describe('How many pages to return (default 50, max 200)'),
+          .describe('How many pages (default 50, max 200).'),
       },
     },
-    async ({ space, start, limit }) => {
+    async ({ wiki, space, start, limit }) => {
       try {
         const effectiveLimit = limit ?? config.pageLimit;
-        const { pages, pagination } = await client.listPages(space, start, effectiveLimit);
+        const { pages, pagination } = await client.listPages(space, start, effectiveLimit, wiki);
         return {
           content: [{
             type: 'text',

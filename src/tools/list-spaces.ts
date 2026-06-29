@@ -6,13 +6,13 @@ export function register(server: McpServer, client: XWikiClient): void {
     'list_spaces',
     {
       description:
-        'List all top-level sections ("spaces") of the corporate XWiki. ' +
-        'A "space" is like a folder — e.g. "Documentation", "Sandbox", "AI". ' +
+        'List top-level sections ("spaces") across all wikis in scope (XWIKI_WIKI_NAMES or auto-discovered via /rest/wikis). ' +
+        'A "space" is like a folder — e.g. "Documentation", "Sandbox", "integratsii". ' +
         'Use this when:\n' +
         '  • the user asks "what is on the wiki?" or "show me the wiki structure"\n' +
-        '  • `search` returned nothing and you need a fallback way to browse\n' +
+        '  • `search` returned nothing — check `_search.suggestions`, then `wiki_status` or `list_wikis`\n' +
         '  • you need a valid space name before calling `list_pages` or `get_page`.\n' +
-        'Returns: array of {id, name, home_url}. ' +
+        'Returns: array of {id, name, wiki, home_url}. ' +
         'NEXT STEP: pick a relevant `name` and pass it to `list_pages` to see what is inside.',
     },
     async () => {

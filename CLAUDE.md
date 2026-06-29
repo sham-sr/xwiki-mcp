@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 MCP (Model Context Protocol) server that bridges AI agents (Claude Code, OpenClaw, Gemini CLI, etc.) with a corporate XWiki instance via REST API. TypeScript, stdio transport, built on `@modelcontextprotocol/sdk`.
 
-Published as `xwiki-mcp` on npm. Current version: **0.2.0**.
+Published as `xwiki-mcp` on npm. Current version: **0.4.1**.
 
 ## Commands
 
@@ -14,7 +14,8 @@ Published as `xwiki-mcp` on npm. Current version: **0.2.0**.
 npm install            # Install dependencies
 npm run build          # Compile TypeScript to dist/
 npm run dev            # Run with tsx (no build step)
-npm test               # vitest (15 tests)
+npm test               # vitest (44 tests)
+npm run check-solr     # Python Solr index check per wiki
 npm publish            # Publishes to npm — prepublishOnly runs build + tests
 ```
 
@@ -24,20 +25,28 @@ Stdio MCP server — reads JSON-RPC from stdin, writes to stdout. Logs go to std
 
 ```
 src/
-├── index.ts           # MCP server init, tool registration (9 tools)
-├── config.ts          # Env var parsing/validation
-├── client.ts          # XWiki REST client — Solr + legacy search, read + write
-├── client.test.ts     # 15 unit tests (mocked fetch)
-├── types.ts           # Shared TypeScript interfaces
+├── index.ts              # MCP server init, tool registration (13 tools)
+├── config.ts             # Env var parsing/validation
+├── client.ts             # XWiki REST client — Solr + legacy search, read + write
+├── reference.ts          # parsePageId, parseViewUrl, space paths
+├── search-suggestions.ts # Empty-search hints for agents
+├── prompts.ts            # MCP prompt wiki_research + resource xwiki://wikis
+├── client.test.ts
+├── reference.test.ts
+├── types.ts
 └── tools/
-    ├── list-spaces.ts        ┐
-    ├── list-pages.ts         │ READ
+    ├── list-wikis.ts         ┐
+    ├── search.ts             │
+    ├── resolve-url.ts        │
+    ├── wiki-status.ts        │ READ / research
+    ├── list-spaces.ts        │
+    ├── list-pages.ts         │
     ├── get-page.ts           │
     ├── get-page-children.ts  │
     ├── get-attachments.ts    │
-    ├── search.ts             ┘  Solr by default, engine="legacy" as fallback
+    ├── get-attachment.ts     ┘
     ├── create-page.ts        ┐
-    ├── delete-page.ts        │ WRITE (v0.2+)
+    ├── delete-page.ts        │ WRITE
     └── add-comment.ts        ┘
 ```
 
@@ -49,7 +58,8 @@ XWIKI_AUTH_TYPE     # basic | token | none  (default: basic)
 XWIKI_USERNAME      # For basic auth
 XWIKI_PASSWORD      # For basic auth
 XWIKI_TOKEN         # For token auth (Bearer)
-XWIKI_WIKI_NAME     # Wiki name (default: xwiki)
+XWIKI_WIKI_NAME     # Default wiki for get_page(space,page) and write ops (optional)
+XWIKI_WIKI_NAMES    # Comma-separated search/list scope (optional; auto-discovered via GET /rest/wikis)
 XWIKI_REST_PATH     # REST path (default: /rest)
 XWIKI_PAGE_LIMIT    # Default page size (default: 50)
 ```
@@ -58,7 +68,7 @@ XWIKI_PAGE_LIMIT    # Default page size (default: 50)
 
 - **JSON mode:** Use `?media=json` or `Accept: application/json`
 - **Pagination:** params `start` + `number` (NOT `limit`). The tool surface exposes `limit` and maps it to `number`.
-- **Nested spaces:** dot notation in the tool API (`Foo.Bar`) → REST path `/spaces/Foo/spaces/Bar`
+- **Nested spaces:** dot notation in the tool API (`Foo.Bar`) → REST path `/spaces/Foo/spaces/Bar`. Dots inside a segment name are escaped with backslash (`2\._segment`) — `splitEntityReference` in `reference.ts` handles this; naive `split('.')` breaks REST URLs.
 - **Default page size:** 50 (XWiki max is 1000; keep low to save tokens)
 
 ### Search endpoints — important
@@ -68,7 +78,7 @@ XWiki exposes two different search endpoints:
 | Endpoint | Backend | Searches | Default in v0.2+ |
 |----------|---------|----------|------------------|
 | `/rest/wikis/{wiki}/search` | HQL over DB | page **name** mostly — content matches are unreliable | `engine: "legacy"` |
-| `/rest/wikis/query?type=solr` | Solr index | full-text over title + content, ranked by score | `engine: "solr"` (default) |
+| `/rest/wikis/query?type=solr` | Solr index | full-text over title + content, ranked by score | omit `engine` (auto) or `engine: "solr"` (strict) |
 
 `searchSolr` builds `q` as bare terms (or `title:(...)` / `name:(...)` when scope is set), adds `space:"..."` filter when a space is given, calls `/rest/wikis/query?type=solr&wikis={wiki}`.
 

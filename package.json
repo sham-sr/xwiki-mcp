@@ -1,6 +1,6 @@
 {
   "name": "xwiki-mcp",
-  "version": "0.2.0",
+  "version": "0.4.1",
   "description": "MCP server for XWiki REST API — full-text Solr search + read/write tools for AI agents",
   "type": "module",
   "main": "dist/index.js",
@@ -8,13 +8,16 @@
     "xwiki-mcp": "dist/index.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "AGENTS.md",
+    "AGENTS.ru.md"
   ],
   "scripts": {
     "build": "tsc",
     "dev": "tsx src/index.ts",
     "start": "node dist/index.js",
     "test": "vitest run --exclude 'dist/**'",
+    "check-solr": "python scripts/check_solr_index.py",
     "prepublishOnly": "npm run build && npm test"
   },
   "keywords": [
